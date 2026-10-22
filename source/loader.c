@@ -204,6 +204,7 @@ int fetch_linux(struct linux_info *info) {
   info->kit_type = (int)get_kit_type();
   strcpy(info->cmdline, cmdline);
 
+  if (PS5_FW_IS_11XX(fw)) {
   if (fw == 0x1160) {
     // 11.60 stages the aliases with a checked, journaled transaction instead
     // of the install_page_syscore loop below.

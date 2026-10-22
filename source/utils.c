@@ -97,6 +97,28 @@ int set_offsets(void) {
   case 0x0761:
     env_offset = off_0761;
     break;
+  case 0x1100:
+    if (kernel_get_fw_version() != 0x11000043U) {
+      notify("Only the retail 11.00 build (0x11000043) is supported\n");
+      return -1;
+    }
+    env_offset = off_1100;
+    break;
+  case 0x1120:
+    if (kernel_get_fw_version() != 0x11200005U) {
+      notify("Only the retail 11.20 build (0x11200005) is supported\n");
+      return -1;
+    }
+    env_offset = off_1120;
+    break;
+  case 0x1140:
+    if (kernel_get_fw_version() != 0x11400005U) {
+      notify("Only the retail 11.40 build (0x11400005) is supported\n");
+      return -1;
+    }
+    env_offset = off_1140;
+    break;
+  case 0x1160:
   case 0x1160:
     // Only the retail 11.60 build on a regular PS5 has been tested.
     if (kernel_get_fw_version() != 0x11600005U) {
