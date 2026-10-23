@@ -25,39 +25,34 @@ jobs:
             cmake \
             python3 \
             python3-pip \
-            clang \
-            lld \
-            llvm
+            clang-18 \
+            lld-18
 
-      - name: Clone PS5 Payload SDK
+      - name: Clone and install PS5 Payload SDK
         run: |
           git clone --depth 1 \
             https://github.com/ps5-payload-dev/sdk.git \
-            "$RUNNER_TEMP/ps5-payload-sdk"
+            "$RUNNER_TEMP/ps5-payload-sdk-src"
 
-      - name: Verify SDK build instructions
+          sudo make -C "$RUNNER_TEMP/ps5-payload-sdk-src" \
+            DESTDIR=/opt/ps5-payload-sdk install
+
+          echo "PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk" >> "$GITHUB_ENV"
+
+      - name: Verify SDK installation
         run: |
-          cd "$RUNNER_TEMP/ps5-payload-sdk"
-
-          echo "SDK repository contents:"
-          ls -la
-
-          if [ ! -f toolchain/prospero.mk ]; then
-            echo "::error::The cloned repository does not contain toolchain/prospero.mk"
-            echo "The SDK repository or installation procedure must be corrected."
+          if [ ! -f "$PS5_PAYLOAD_SDK/toolchain/prospero.mk" ]; then
+            echo "::error::prospero.mk was not installed."
+            find /opt/ps5-payload-sdk -maxdepth 4 -type f | head -50
             exit 1
           fi
 
-      - name: Configure SDK environment
-        run: |
-          echo "PS5_PAYLOAD_SDK=$RUNNER_TEMP/ps5-payload-sdk" >> "$GITHUB_ENV"
-          echo "$RUNNER_TEMP/ps5-payload-sdk/bin" >> "$GITHUB_PATH"
+          if [ ! -x "$PS5_PAYLOAD_SDK/bin/prospero-clang" ]; then
+            echo "::error::prospero-clang was not installed."
+            exit 1
+          fi
 
-      - name: Verify project Makefile
-        run: |
-          test -f Makefile
-          test -d source
-          echo "Project files found."
+          echo "PS5 Payload SDK installed successfully."
 
       - name: Build project
         run: |
@@ -65,11 +60,7 @@ jobs:
 
       - name: Verify build output
         run: |
-          if [ ! -f bin/ps5-linux-loader.elf ]; then
-            echo "::error::Build output bin/ps5-linux-loader.elf was not generated."
-            exit 1
-          fi
-
+          test -f bin/ps5-linux-loader.elf
           file bin/ps5-linux-loader.elf
 
       - name: Upload build artifact
