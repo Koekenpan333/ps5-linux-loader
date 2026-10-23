@@ -25,34 +25,39 @@ jobs:
             cmake \
             python3 \
             python3-pip \
-            clang-18 \
-            lld-18
+            clang \
+            lld \
+            llvm
 
-      - name: Clone and install PS5 Payload SDK
+      - name: Clone PS5 Payload SDK
         run: |
           git clone --depth 1 \
             https://github.com/ps5-payload-dev/sdk.git \
             "$RUNNER_TEMP/ps5-payload-sdk-src"
 
-          sudo make -C "$RUNNER_TEMP/ps5-payload-sdk-src" \
-            DESTDIR=/opt/ps5-payload-sdk install
-
-          echo "PS5_PAYLOAD_SDK=/opt/ps5-payload-sdk" >> "$GITHUB_ENV"
-
-      - name: Verify SDK installation
+      - name: Inspect SDK build instructions
         run: |
-          if [ ! -f "$PS5_PAYLOAD_SDK/toolchain/prospero.mk" ]; then
-            echo "::error::prospero.mk was not installed."
-            find /opt/ps5-payload-sdk -maxdepth 4 -type f | head -50
-            exit 1
-          fi
+          cd "$RUNNER_TEMP/ps5-payload-sdk-src"
+          echo "SDK Makefile:"
+          sed -n '1,180p' Makefile
+          echo "SDK README:"
+          sed -n '1,160p' README.md
 
-          if [ ! -x "$PS5_PAYLOAD_SDK/bin/prospero-clang" ]; then
-            echo "::error::prospero-clang was not installed."
-            exit 1
-          fi
+      - name: Build and install PS5 Payload SDK
+        run: |
+          cd "$RUNNER_TEMP/ps5-payload-sdk-src"
+          make -j"$(nproc)"
+          sudo make install
 
-          echo "PS5 Payload SDK installed successfully."
+      - name: Locate SDK toolchain
+        run: |
+          find "$RUNNER_TEMP/ps5-payload-sdk-src" /opt \
+            -name prospero.mk -o -name prospero-clang \
+            2>/dev/null | head -50
+
+      - name: Configure SDK environment
+        run: |
+          echo "PS5_PAYLOAD_SDK=$RUNNER_TEMP/ps5-payload-sdk-src" >> "$GITHUB_ENV"
 
       - name: Build project
         run: |
